@@ -75,12 +75,23 @@ type ToolCall struct {
 }
 
 type Response struct {
-	Model        string    `json:"model"`
-	FinishReason string    `json:"finish_reason"`
-	Messages     []Message `json:"messages"`
-	Metadata     Metadata  `json:"metadata"`
-	Usage        *Usage    `json:"usage,omitempty"`
+	Model        string       `json:"model"`
+	FinishReason FinishReason `json:"finish_reason"`
+	Messages     []Message    `json:"messages"`
+	Metadata     Metadata     `json:"metadata"`
+	Usage        *Usage       `json:"usage,omitempty"`
 }
+
+type FinishReason string
+
+const (
+	FinishReasonStop      FinishReason = "stop"
+	FinishReasonMaxTokens FinishReason = "max_tokens"
+	FinishReasonToolUse   FinishReason = "tool_use"
+	FinishReasonSafety    FinishReason = "safety"
+	FinishReasonError     FinishReason = "error"
+	FinishReasonUnknown   FinishReason = "unknown"
+)
 
 type Usage struct {
 	InputTokens         int     `json:"input_tokens"`

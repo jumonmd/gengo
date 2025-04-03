@@ -73,6 +73,10 @@ func runToolcall(t *testing.T, req *chat.Request, hasToolCallID bool) {
 		t.Fatalf("expected tool call, got %d", len(resp.ToolCalls()))
 	}
 
+	if resp.FinishReason != "tool_use" {
+		t.Fatalf("expected finish reason `tool_use`, got %s", resp.FinishReason)
+	}
+
 	for _, toolCall := range resp.ToolCalls() {
 		if toolCall.ToolCall == nil {
 			t.Fatalf("expected tool call, got nil")
@@ -106,6 +110,10 @@ func runImageInput(t *testing.T, req *chat.Request) {
 
 	checkResponse(t, resp)
 
+	if resp.FinishReason != chat.FinishReasonStop {
+		t.Fatalf("expected finish reason `stop`, got %s", resp.FinishReason)
+	}
+
 	t.Logf("Content: %s", resp.Messages[0].ContentString())
 	if !strings.Contains(resp.Messages[0].ContentString(), "GENGO") {
 		t.Fatalf("expected content to contain `GENGO`, got %s", resp.Messages[0].ContentString())
@@ -123,6 +131,10 @@ func runResponseSchema(t *testing.T, req *chat.Request) {
 	}
 
 	checkResponse(t, resp)
+
+	if resp.FinishReason != chat.FinishReasonStop {
+		t.Fatalf("expected finish reason `stop`, got %s", resp.FinishReason)
+	}
 
 	t.Logf("Content: %s", resp.Messages[0].ContentString())
 
@@ -153,6 +165,10 @@ func runGenerate(t *testing.T, req *chat.Request) {
 
 	checkResponse(t, resp)
 
+	if resp.FinishReason != chat.FinishReasonStop {
+		t.Fatalf("expected finish reason `stop`, got %s", resp.FinishReason)
+	}
+
 	t.Logf("Content: %s", resp.Messages[0].ContentString())
 }
 
@@ -171,6 +187,9 @@ func runGenerateStream(t *testing.T, req *chat.Request) {
 	}
 
 	checkResponse(t, resp)
+	if resp.FinishReason != chat.FinishReasonStop {
+		t.Fatalf("expected finish reason `stop`, got %s", resp.FinishReason)
+	}
 
 	content := ""
 	for _, response := range responses {
@@ -213,5 +232,9 @@ func checkResponse(t *testing.T, resp *chat.Response) {
 
 	if resp.Messages[0].ToolCall == nil && resp.Messages[0].ContentString() == "" {
 		t.Fatalf("expected content, got empty string")
+	}
+
+	if resp.FinishReason == "" {
+		t.Fatalf("expected finish reason, got empty string")
 	}
 }

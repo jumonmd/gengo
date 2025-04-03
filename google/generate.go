@@ -65,7 +65,7 @@ func generateContentStream(ctx context.Context, client *genai.Client, r *chat.Re
 
 	usage := chat.Usage{}
 	content := ""
-
+	finishReason := genai.FinishReasonUnspecified
 	for resp, err := range client.Models.GenerateContentStream(ctx, r.Model, req.Contents, req.Config) {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -89,12 +89,15 @@ func generateContentStream(ctx context.Context, client *genai.Client, r *chat.Re
 				})
 			}
 		}
+
+		finishReason = resp.Candidates[0].FinishReason
 	}
 
 	return &chat.Response{
-		Model:    r.Model,
-		Messages: []chat.Message{chat.NewTextMessage(chat.MessageRoleAI, content)},
-		Usage:    &usage,
+		Model:        r.Model,
+		Messages:     []chat.Message{chat.NewTextMessage(chat.MessageRoleAI, content)},
+		FinishReason: convertFinishReason(finishReason),
+		Usage:        &usage,
 	}, nil
 }
 
@@ -247,12 +250,13 @@ func convertChatSchema(schema jsonschema.Schema) (*genai.Schema, error) {
 func convertGenerateContentResponse(result *genai.GenerateContentResponse, model string) *chat.Response {
 	msgs := []chat.Message{}
 
+	finishreason := chat.FinishReasonUnknown
+
 	if len(result.Candidates) > 0 && result.Candidates[0].Content != nil {
 		text := result.Text()
 		if text != "" {
 			msgs = append(msgs, chat.NewTextMessage(chat.MessageRoleAI, text))
 		}
-
 		functionCalls := result.FunctionCalls()
 		for _, call := range functionCalls {
 			argsJSON, err := json.Marshal(call.Args)
@@ -261,17 +265,46 @@ func convertGenerateContentResponse(result *genai.GenerateContentResponse, model
 			}
 			msgs = append(msgs, chat.NewToolCallMessage(call.Name, call.ID, string(argsJSON)))
 		}
+		if len(functionCalls) > 0 {
+			finishreason = "tool_use"
+		} else {
+			finishreason = convertFinishReason(result.Candidates[0].FinishReason)
+		}
 	}
 
 	usage := &chat.Usage{}
 	updateUsage(usage, result.UsageMetadata)
 
 	response := &chat.Response{
-		Model:    model,
-		Messages: msgs,
-		Usage:    usage,
+		Model:        model,
+		Messages:     msgs,
+		FinishReason: finishreason,
+		Usage:        usage,
 	}
 	return response
+}
+
+func convertFinishReason(reason genai.FinishReason) chat.FinishReason {
+	switch reason {
+	case genai.FinishReasonStop:
+		return chat.FinishReasonStop
+	case genai.FinishReasonMaxTokens:
+		return chat.FinishReasonMaxTokens
+	case genai.FinishReasonSafety,
+		genai.FinishReasonImageSafety,
+		genai.FinishReasonProhibitedContent,
+		genai.FinishReasonRecitation,
+		genai.FinishReasonBlocklist,
+		genai.FinishReasonSPII:
+		return chat.FinishReasonSafety
+	case genai.FinishReasonMalformedFunctionCall:
+		return chat.FinishReasonError
+	case genai.FinishReasonOther,
+		genai.FinishReasonUnspecified:
+		return chat.FinishReasonUnknown
+	default:
+		return chat.FinishReasonUnknown
+	}
 }
 
 func updateUsage(usage *chat.Usage, metadata *genai.GenerateContentResponseUsageMetadata) {

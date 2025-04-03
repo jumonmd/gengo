@@ -149,6 +149,20 @@ func convertMessage(msg *chat.Message) (anthropic.MessageParam, error) {
 	}
 }
 
+func convertFinishReason(reason anthropic.MessageStopReason) chat.FinishReason {
+	switch reason {
+	case anthropic.MessageStopReasonEndTurn,
+		anthropic.MessageStopReasonStopSequence:
+		return chat.FinishReasonStop
+	case anthropic.MessageStopReasonMaxTokens:
+		return chat.FinishReasonMaxTokens
+	case anthropic.MessageStopReasonToolUse:
+		return chat.FinishReasonToolUse
+	default:
+		return chat.FinishReasonUnknown
+	}
+}
+
 func messageToResponse(message *anthropic.Message) *chat.Response {
 	messages := []chat.Message{}
 
@@ -163,7 +177,8 @@ func messageToResponse(message *anthropic.Message) *chat.Response {
 	}
 
 	return &chat.Response{
-		Messages: messages,
+		Messages:     messages,
+		FinishReason: convertFinishReason(message.StopReason),
 		Usage: &chat.Usage{
 			InputTokens:  int(message.Usage.InputTokens),
 			OutputTokens: int(message.Usage.OutputTokens),
@@ -203,7 +218,8 @@ func handleStreaming(ctx context.Context, client anthropic.Client, params anthro
 
 	usage.TotalTokens = usage.InputTokens + usage.OutputTokens
 	return &chat.Response{
-		Messages: []chat.Message{chat.NewTextMessage(chat.MessageRoleAI, content)},
-		Usage:    usage,
+		Messages:     []chat.Message{chat.NewTextMessage(chat.MessageRoleAI, content)},
+		FinishReason: "stop",
+		Usage:        usage,
 	}, nil
 }

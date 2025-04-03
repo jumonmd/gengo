@@ -58,8 +58,9 @@ func chatCompletion(ctx context.Context, client *openai.Client, r openai.ChatCom
 		msgs = append(msgs, chat.NewToolCallMessage(toolcall.Function.Name, toolcall.ID, toolcall.Function.Arguments))
 	}
 	chatresp := &chat.Response{
-		Model:    r.Model,
-		Messages: msgs,
+		Model:        r.Model,
+		Messages:     msgs,
+		FinishReason: convertFinishReason(resp.Choices[0].FinishReason),
 		Usage: &chat.Usage{
 			InputTokens:  resp.Usage.PromptTokens,
 			OutputTokens: resp.Usage.CompletionTokens,
@@ -91,9 +92,10 @@ func chatCompletionStream(ctx context.Context, client *openai.Client, r openai.C
 			if errors.Is(err, io.EOF) {
 				// chat completion stream is done
 				return &chat.Response{
-					Model:    r.Model,
-					Messages: []chat.Message{chat.NewTextMessage(chat.MessageRoleAI, content)},
-					Usage:    usage,
+					Model:        r.Model,
+					Messages:     []chat.Message{chat.NewTextMessage(chat.MessageRoleAI, content)},
+					FinishReason: "stop",
+					Usage:        usage,
 				}, nil
 			} else if err != nil {
 				return nil, fmt.Errorf("chat completion stream recv: %w", err)
@@ -226,5 +228,23 @@ func convertChatSchema(schema jsonschema.Schema) *openai.ChatCompletionResponseF
 			Name:   "response",
 			Schema: schema.JSON(),
 		},
+	}
+}
+
+func convertFinishReason(reason openai.FinishReason) chat.FinishReason {
+	switch reason {
+	case openai.FinishReasonStop:
+		return chat.FinishReasonStop
+	case openai.FinishReasonLength:
+		return chat.FinishReasonMaxTokens
+	case openai.FinishReasonFunctionCall,
+		openai.FinishReasonToolCalls:
+		return chat.FinishReasonToolUse
+	case openai.FinishReasonContentFilter:
+		return chat.FinishReasonSafety
+	case openai.FinishReasonNull:
+		return chat.FinishReasonUnknown
+	default:
+		return chat.FinishReasonUnknown
 	}
 }
