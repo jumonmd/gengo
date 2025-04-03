@@ -1,0 +1,70 @@
+run:
+  build-tags:
+    - integration_test
+linters:
+  presets:
+    - bugs
+    - comment
+    - complexity
+    - error
+    - format
+    - import
+    - metalinter
+    - module
+    - performance
+    - style
+    - test
+    - unused
+  disable:
+    - gci
+    - tagliatelle
+    - wsl
+    - exhaustruct
+    - lll
+    - varnamelen
+    - nlreturn
+    - err113
+    - wrapcheck
+    - testpackage
+    - nolintlint
+    - depguard
+    - ireturn
+    - perfsprint
+    - musttag
+    - tagalign
+    - mnd
+    - canonicalheader
+    - intrange
+    - testifylint
+    - paralleltest
+    - nonamedreturns
+    - dupword
+    - gochecknoglobals
+    - gosmopolitan
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gocognit
+          - nestif
+          - cyclop
+      - path: examples/
+        linters:
+          - forbidigo
+          - goheader
+linters-settings:
+  cyclop:
+    max-complexity: 12
+  funlen:
+    lines: 90
+  errcheck:
+    # errcheck -verbose .
+    exclude-functions:
+  goheader:
+    values:
+      regexp:
+        fromyear: \d\d\d\d
+    template: |-
+      SPDX-FileCopyrightText: {{ FROMYEAR }} Masa Cento
+      SPDX-License-Identifier: MIT
+
