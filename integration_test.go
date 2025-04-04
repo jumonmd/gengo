@@ -73,7 +73,7 @@ func runToolcall(t *testing.T, req *chat.Request, hasToolCallID bool) {
 		t.Fatalf("expected tool call, got %d", len(resp.ToolCalls()))
 	}
 
-	if resp.FinishReason != "tool_use" {
+	if resp.FinishReason != chat.FinishReasonToolUse {
 		t.Fatalf("expected finish reason `tool_use`, got %s", resp.FinishReason)
 	}
 
@@ -81,7 +81,7 @@ func runToolcall(t *testing.T, req *chat.Request, hasToolCallID bool) {
 		if toolCall.ToolCall == nil {
 			t.Fatalf("expected tool call, got nil")
 		}
-		if hasToolCallID && toolCall.ToolCall.CallID == "" {
+		if hasToolCallID && toolCall.ToolCall.ID == "" {
 			t.Fatalf("expected tool call id, got empty string")
 		}
 		if !strings.Contains(toolCall.ToolCall.Name, "get_current_weather") {
@@ -91,6 +91,24 @@ func runToolcall(t *testing.T, req *chat.Request, hasToolCallID bool) {
 			t.Fatalf("expected tool call arguments `location`, got %s", toolCall.ToolCall.Arguments)
 		}
 		t.Logf("Tool call: %s, Arguments: %s", toolCall.ToolCall.Name, toolCall.ToolCall.Arguments)
+	}
+
+	req.Messages = append(req.Messages, resp.Messages...)
+
+	// make tool response manually
+	for _, msg := range resp.ToolCalls() {
+		req.Messages = append(req.Messages, chat.NewToolResponseMessage(msg.ToolCall.Name, msg.ToolCall.ID, "Rainy"))
+	}
+
+	resp, err = gengo.Generate(t.Context(), req)
+	if err != nil {
+		t.Fatalf("Error generating response: %v", err)
+	}
+
+	checkResponse(t, resp)
+
+	if resp.FinishReason != chat.FinishReasonStop {
+		t.Fatalf("expected finish reason `stop`, got %s", resp.FinishReason)
 	}
 }
 

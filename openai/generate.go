@@ -57,6 +57,7 @@ func chatCompletion(ctx context.Context, client *openai.Client, r openai.ChatCom
 	for _, toolcall := range resp.Choices[0].Message.ToolCalls {
 		msgs = append(msgs, chat.NewToolCallMessage(toolcall.Function.Name, toolcall.ID, toolcall.Function.Arguments))
 	}
+
 	chatresp := &chat.Response{
 		Model:        r.Model,
 		Messages:     msgs,
@@ -167,13 +168,33 @@ func convertChatRequest(r *chat.Request) openai.ChatCompletionRequest {
 func convertChatMessage(msg *chat.Message) openai.ChatCompletionMessage {
 	parts := []openai.ChatMessagePart{}
 
+	if msg.IsToolResponse() {
+		return openai.ChatCompletionMessage{
+			Role:       openai.ChatMessageRoleTool,
+			Content:    msg.ToolResponse.Result,
+			Name:       msg.ToolResponse.Name,
+			ToolCallID: msg.ToolResponse.ID,
+		}
+	}
 	for _, part := range msg.Content {
 		parts = append(parts, convertContentPart(&part))
 	}
 
+	toolcalls := []openai.ToolCall{}
+	if msg.IsToolCall() {
+		toolcalls = append(toolcalls, openai.ToolCall{
+			ID:   msg.ToolCall.ID,
+			Type: openai.ToolTypeFunction,
+			Function: openai.FunctionCall{
+				Name:      msg.ToolCall.Name,
+				Arguments: msg.ToolCall.Arguments,
+			},
+		})
+	}
 	return openai.ChatCompletionMessage{
 		Role:         convertChatRole(msg.Role),
 		MultiContent: parts,
+		ToolCalls:    toolcalls,
 	}
 }
 

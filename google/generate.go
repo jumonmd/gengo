@@ -168,16 +168,32 @@ func convertChatMessages(messages []chat.Message) ([]*genai.Content, error) {
 
 	for _, msg := range messages {
 		parts := []*genai.Part{}
-		for _, part := range msg.Content {
-			if part.Type == "text" {
-				parts = append(parts, genai.NewPartFromText(part.Text))
-			} else if part.Type == "image" {
-				if !chat.IsDataURL(part.DataURL) {
-					return nil, fmt.Errorf("invalid data URL: %s", part.DataURL)
-				}
-				data, mimeType, err := chat.DecodeDataURL(part.DataURL)
-				if err == nil {
-					parts = append(parts, genai.NewPartFromBytes(data, mimeType))
+		switch {
+		case msg.IsToolResponse():
+			output := map[string]any{
+				"name":    msg.ToolResponse.Name,
+				"content": msg.ToolResponse.Result,
+			}
+			parts = append(parts, genai.NewPartFromFunctionResponse(msg.ToolResponse.Name, output))
+		case msg.IsToolCall():
+			args := map[string]any{}
+			if err := json.Unmarshal([]byte(msg.ToolCall.Arguments), &args); err != nil {
+				return nil, fmt.Errorf("unmarshal tool call arguments: %w", err)
+			}
+			parts = append(parts, genai.NewPartFromFunctionCall(msg.ToolCall.Name, args))
+		default:
+			for _, part := range msg.Content {
+				switch part.Type {
+				case "text":
+					parts = append(parts, genai.NewPartFromText(part.Text))
+				case "image":
+					if !chat.IsDataURL(part.DataURL) {
+						return nil, fmt.Errorf("invalid data URL: %s", part.DataURL)
+					}
+					data, mimeType, err := chat.DecodeDataURL(part.DataURL)
+					if err == nil {
+						parts = append(parts, genai.NewPartFromBytes(data, mimeType))
+					}
 				}
 			}
 		}
@@ -266,7 +282,7 @@ func convertGenerateContentResponse(result *genai.GenerateContentResponse, model
 			msgs = append(msgs, chat.NewToolCallMessage(call.Name, call.ID, string(argsJSON)))
 		}
 		if len(functionCalls) > 0 {
-			finishreason = "tool_use"
+			finishreason = chat.FinishReasonToolUse
 		} else {
 			finishreason = convertFinishReason(result.Candidates[0].FinishReason)
 		}

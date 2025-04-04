@@ -5,6 +5,7 @@ package anthropic
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -113,21 +114,27 @@ func convertChatRequest(r *chat.Request, messages []anthropic.MessageParam) anth
 
 func convertMessage(msg *chat.Message) (anthropic.MessageParam, error) {
 	var blocks []anthropic.ContentBlockParamUnion
-
-	for _, part := range msg.Content {
-		if part.Type == "text" {
-			blocks = append(blocks, anthropic.NewTextBlock(part.Text))
-		} else if part.Type == "image" {
-			if !chat.IsDataURL(part.DataURL) {
-				return anthropic.MessageParam{}, fmt.Errorf("invalid image data URL: %s", part.DataURL)
-			}
-
-			mimeType, encodedData, err := chat.SplitDataURL(part.DataURL)
-			if err != nil {
-				return anthropic.MessageParam{}, fmt.Errorf("split image data URL: %w", err)
-			}
-			blocks = append(blocks, anthropic.NewImageBlockBase64(mimeType, encodedData))
+	switch {
+	case msg.IsToolResponse():
+		blocks = append(blocks, anthropic.NewToolResultBlock(msg.ToolResponse.ID, msg.ToolResponse.Result, false))
+	case msg.IsToolCall():
+		var input map[string]any
+		if err := json.Unmarshal([]byte(msg.ToolCall.Arguments), &input); err != nil {
+			return anthropic.MessageParam{}, fmt.Errorf("unmarshal tool call arguments: %w", err)
 		}
+		block := anthropic.ToolUseBlockParam{
+			ID:    msg.ToolCall.ID,
+			Input: input,
+			Name:  msg.ToolCall.Name,
+			Type:  "tool_use",
+		}
+		blocks = append(blocks, anthropic.ContentBlockParamUnion{OfRequestToolUseBlock: &block})
+	default:
+		blks, err := convertContentPart(msg)
+		if err != nil {
+			return anthropic.MessageParam{}, fmt.Errorf("convert content part: %w", err)
+		}
+		blocks = append(blocks, blks...)
 	}
 
 	if len(blocks) == 0 {
@@ -142,11 +149,30 @@ func convertMessage(msg *chat.Message) (anthropic.MessageParam, error) {
 	case chat.MessageRoleAI:
 		return anthropic.NewAssistantMessage(blocks...), nil
 	case chat.MessageRoleTool:
-		// check this spec
-		return anthropic.NewAssistantMessage(blocks...), nil
+		return anthropic.NewUserMessage(blocks...), nil
 	default:
 		return anthropic.MessageParam{}, fmt.Errorf("unknown message role: %s", msg.Role)
 	}
+}
+
+func convertContentPart(msg *chat.Message) ([]anthropic.ContentBlockParamUnion, error) {
+	blocks := []anthropic.ContentBlockParamUnion{}
+	for _, part := range msg.Content {
+		if part.Type == "text" {
+			blocks = append(blocks, anthropic.NewTextBlock(part.Text))
+		} else if part.Type == "image" {
+			if !chat.IsDataURL(part.DataURL) {
+				return nil, fmt.Errorf("invalid image data URL: %s", part.DataURL)
+			}
+
+			mimeType, encodedData, err := chat.SplitDataURL(part.DataURL)
+			if err != nil {
+				return nil, fmt.Errorf("split image data URL: %w", err)
+			}
+			blocks = append(blocks, anthropic.NewImageBlockBase64(mimeType, encodedData))
+		}
+	}
+	return blocks, nil
 }
 
 func convertFinishReason(reason anthropic.MessageStopReason) chat.FinishReason {

@@ -55,8 +55,18 @@ type Message struct {
 	Type    string        `json:"type,omitempty"`
 	Role    MessageRole   `json:"role"`
 	Content []ContentPart `json:"content,omitempty"`
-	// ToolCall by AI.
+	// ToolCall by AI. Role should be AI.
 	ToolCall *ToolCall `json:"tool_call,omitempty"`
+	// ToolResponse from tool. Role should be tool.
+	ToolResponse *ToolResponse `json:"tool_response,omitempty"`
+}
+
+func (m *Message) IsToolCall() bool {
+	return m.ToolCall != nil && m.Role == MessageRoleAI
+}
+
+func (m *Message) IsToolResponse() bool {
+	return m.ToolResponse != nil && m.Role == MessageRoleTool
 }
 
 type ContentPart struct {
@@ -69,9 +79,17 @@ type ContentPart struct {
 }
 
 type ToolCall struct {
-	CallID    string `json:"call_id"`
-	Name      string `json:"name"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Arguments is stringified json.
 	Arguments string `json:"arguments"`
+}
+
+type ToolResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Result is stringified json.
+	Result string `json:"result"`
 }
 
 type Response struct {
@@ -169,7 +187,7 @@ func NewToolCallMessage(name, callID, arguments string) Message {
 		Role: MessageRoleAI,
 		ToolCall: &ToolCall{
 			Name:      name,
-			CallID:    callID,
+			ID:        callID,
 			Arguments: arguments,
 		},
 	}
@@ -179,14 +197,11 @@ func NewToolCallMessage(name, callID, arguments string) Message {
 func NewToolResponseMessage(name, callID, result string) Message {
 	return Message{
 		Role: MessageRoleTool,
-		ToolCall: &ToolCall{
+		ToolResponse: &ToolResponse{
 			Name:   name,
-			CallID: callID,
+			ID:     callID,
+			Result: result,
 		},
-		Content: []ContentPart{{
-			Type: "text",
-			Text: result,
-		}},
 	}
 }
 
@@ -194,11 +209,22 @@ func NewToolResponseMessage(name, callID, result string) Message {
 func (r *Response) ToolCalls() []Message {
 	toolcalls := []Message{}
 	for _, m := range r.Messages {
-		if m.ToolCall != nil && m.Role == MessageRoleAI {
+		if m.IsToolCall() {
 			toolcalls = append(toolcalls, m)
 		}
 	}
 	return toolcalls
+}
+
+// ToolResponses returns tool response messages from tool.
+func (r *Response) ToolResponses() []Message {
+	toolresponses := []Message{}
+	for _, m := range r.Messages {
+		if m.IsToolResponse() {
+			toolresponses = append(toolresponses, m)
+		}
+	}
+	return toolresponses
 }
 
 func (p ContentPart) String() string {
@@ -222,7 +248,7 @@ func (m *Message) String() string {
 		parts = append(parts, fmt.Sprintf("%s: %s", strings.ToUpper(string(m.Role)), m.ContentString()))
 	}
 	if m.ToolCall != nil {
-		parts = append(parts, fmt.Sprintf("tool_calls: [CallID: %s, Name: %s, Arguments: %s]", m.ToolCall.CallID, m.ToolCall.Name, m.ToolCall.Arguments))
+		parts = append(parts, fmt.Sprintf("tool_calls: [CallID: %s, Name: %s, Arguments: %s]", m.ToolCall.ID, m.ToolCall.Name, m.ToolCall.Arguments))
 	}
 	return strings.Join(parts, "\n")
 }
