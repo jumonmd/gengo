@@ -18,7 +18,11 @@ import (
 func Generate(ctx context.Context, r *chat.Request, opts ...chat.Option) (*chat.Response, error) {
 	opt := chat.NewOptions(opts...)
 
-	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+	cfg := openai.DefaultConfig(os.Getenv("OPENAI_API_KEY"))
+	if opt.BaseURL != "" {
+		cfg.BaseURL = opt.BaseURL
+	}
+	client := openai.NewClientWithConfig(cfg)
 
 	req := convertChatRequest(r)
 
@@ -36,6 +40,7 @@ func Generate(ctx context.Context, r *chat.Request, opts ...chat.Option) (*chat.
 	if err != nil {
 		return nil, fmt.Errorf("chat completion: %w", err)
 	}
+
 	opt.ModelCatalog.CalculateCost(r.Model, resp.Usage)
 	return resp, nil
 }

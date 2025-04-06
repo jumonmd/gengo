@@ -17,6 +17,7 @@ import (
 
 func Generate(ctx context.Context, r *chat.Request, opts ...chat.Option) (*chat.Response, error) {
 	opt := chat.NewOptions(opts...)
+
 	client, err := genai.NewClient(ctx, nil)
 	if err != nil {
 		return nil, err

@@ -14,6 +14,7 @@ var modelCatalog []byte
 
 type Options struct {
 	Streamer     Streamer
+	BaseURL      string
 	ModelCatalog ModelCatalog
 }
 
@@ -33,6 +34,12 @@ func NewOptions(opts ...Option) *Options {
 func WithStream(streamer Streamer) Option {
 	return func(o *Options) {
 		o.Streamer = streamer
+	}
+}
+
+func WithBaseURL(baseURL string) Option {
+	return func(o *Options) {
+		o.BaseURL = baseURL
 	}
 }
 

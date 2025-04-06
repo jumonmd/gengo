@@ -24,9 +24,13 @@ Make sure to return an instance of the JSON, not the schema itself.
 
 func Generate(ctx context.Context, r *chat.Request, opts ...chat.Option) (*chat.Response, error) {
 	opt := chat.NewOptions(opts...)
-	client := anthropic.NewClient(
-		option.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
-	)
+
+	options := []option.RequestOption{option.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY"))}
+	if opt.BaseURL != "" {
+		options = append(options, option.WithBaseURL(opt.BaseURL))
+	}
+
+	client := anthropic.NewClient(options...)
 
 	messages := []anthropic.MessageParam{}
 	if r.ResponseSchema != nil {
