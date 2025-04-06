@@ -22,13 +22,13 @@ const (
 
 type Request struct {
 	Model          string            `json:"model"`
-	Config         ModelConfig       `json:"config"`
-	Metadata       Metadata          `json:"metadata"`
+	Config         ModelConfig       `json:"config,omitempty"`
+	Metadata       Metadata          `json:"metadata,omitempty"`
 	Messages       []Message         `json:"messages"`
-	Tools          []Tool            `json:"tools"`
-	MustCallTool   bool              `json:"must_call_tool"`
-	ResponseType   string            `json:"response_type"`
-	ResponseSchema jsonschema.Schema `json:"response_schema"`
+	Tools          []Tool            `json:"tools,omitempty"`
+	MustCallTool   bool              `json:"must_call_tool,omitempty"`
+	ResponseType   string            `json:"response_type,omitempty"`
+	ResponseSchema jsonschema.Schema `json:"response_schema,omitempty"`
 }
 
 type ModelConfig struct {
@@ -42,9 +42,9 @@ type ModelConfig struct {
 
 type Tool struct {
 	Name        string `json:"name"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	// Parameters.
-	InputSchema jsonschema.Schema `json:"input_schema"`
+	InputSchema jsonschema.Schema `json:"input_schema,omitempty"`
 }
 
 type Metadata map[string]string
@@ -96,7 +96,7 @@ type Response struct {
 	Model        string       `json:"model"`
 	FinishReason FinishReason `json:"finish_reason"`
 	Messages     []Message    `json:"messages"`
-	Metadata     Metadata     `json:"metadata"`
+	Metadata     Metadata     `json:"metadata,omitempty"`
 	Usage        *Usage       `json:"usage,omitempty"`
 }
 
@@ -121,7 +121,7 @@ type Usage struct {
 	Cost                float64 `json:"cost"`
 }
 
-type Streamer func(resp *StreamResponse)
+type Streamer func(resp *StreamResponse) error
 
 type StreamResponse struct {
 	// Type is the type of the stream response for extension.
@@ -161,7 +161,6 @@ func NewTextImageMessage(role MessageRole, text, path string) (Message, error) {
 	}
 
 	content := []ContentPart{}
-
 	if text != "" {
 		textpart := ContentPart{
 			Type: "text",
@@ -225,6 +224,14 @@ func (r *Response) ToolResponses() []Message {
 		}
 	}
 	return toolresponses
+}
+
+func (r *Response) String() string {
+	parts := []string{}
+	for _, m := range r.Messages {
+		parts = append(parts, m.String())
+	}
+	return strings.Join(parts, "\n")
 }
 
 func (p ContentPart) String() string {

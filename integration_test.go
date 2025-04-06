@@ -196,8 +196,9 @@ func runGenerateStream(t *testing.T, req *chat.Request) {
 	req.Messages = append(req.Messages, chat.NewTextMessage(chat.MessageRoleHuman, "Hello!"))
 
 	responses := []chat.StreamResponse{}
-	streamer := func(resp *chat.StreamResponse) {
+	streamer := func(resp *chat.StreamResponse) error {
 		responses = append(responses, *resp)
+		return nil
 	}
 	resp, err := gengo.Generate(t.Context(), req, chat.WithStream(streamer))
 	if err != nil {

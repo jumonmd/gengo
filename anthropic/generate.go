@@ -115,9 +115,9 @@ func convertChatRequest(r *chat.Request, messages []anthropic.MessageParam) anth
 func convertMessage(msg *chat.Message) (anthropic.MessageParam, error) {
 	var blocks []anthropic.ContentBlockParamUnion
 	switch {
-	case msg.IsToolResponse():
+	case msg.ToolResponse != nil:
 		blocks = append(blocks, anthropic.NewToolResultBlock(msg.ToolResponse.ID, msg.ToolResponse.Result, false))
-	case msg.IsToolCall():
+	case msg.ToolCall != nil:
 		var input map[string]any
 		if err := json.Unmarshal([]byte(msg.ToolCall.Arguments), &input); err != nil {
 			return anthropic.MessageParam{}, fmt.Errorf("unmarshal tool call arguments: %w", err)
@@ -226,10 +226,13 @@ func handleStreaming(ctx context.Context, client anthropic.Client, params anthro
 		case anthropic.ContentBlockDeltaEvent:
 			if textDelta, ok := eventVariant.Delta.AsAny().(anthropic.TextDelta); ok {
 				content += textDelta.Text
-				streamer(&chat.StreamResponse{
+				err := streamer(&chat.StreamResponse{
 					Type:    "text",
 					Content: textDelta.Text,
 				})
+				if err != nil {
+					return nil, fmt.Errorf("stream: %w", err)
+				}
 			}
 		case anthropic.MessageStartEvent:
 			usage.InputTokens = int(eventVariant.Message.Usage.InputTokens)

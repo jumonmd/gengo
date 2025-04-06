@@ -113,10 +113,13 @@ func chatCompletionStream(ctx context.Context, client *openai.Client, r openai.C
 			// stream chunk content
 			if c := response.Choices[0].Delta.Content; c != "" {
 				content += c
-				streamer(&chat.StreamResponse{
+				err := streamer(&chat.StreamResponse{
 					Type:    "text",
 					Content: c,
 				})
+				if err != nil {
+					return nil, fmt.Errorf("stream: %w", err)
+				}
 			}
 		}
 	}

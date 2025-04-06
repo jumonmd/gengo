@@ -56,7 +56,7 @@ func generateContent(ctx context.Context, client *genai.Client, r *chat.Request)
 	return response, nil
 }
 
-func generateContentStream(ctx context.Context, client *genai.Client, r *chat.Request, streamfunc chat.Streamer) (*chat.Response, error) {
+func generateContentStream(ctx context.Context, client *genai.Client, r *chat.Request, streamer chat.Streamer) (*chat.Response, error) {
 	config := convertChatConfig(r)
 	req, err := convertChatRequest(r, config)
 	if err != nil {
@@ -83,10 +83,13 @@ func generateContentStream(ctx context.Context, client *genai.Client, r *chat.Re
 		for _, part := range resp.Candidates[0].Content.Parts {
 			if c := part.Text; c != "" {
 				content += c
-				streamfunc(&chat.StreamResponse{
+				err := streamer(&chat.StreamResponse{
 					Type:    "text",
 					Content: c,
 				})
+				if err != nil {
+					return nil, fmt.Errorf("stream: %w", err)
+				}
 			}
 		}
 
