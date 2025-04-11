@@ -16,6 +16,7 @@ type Options struct {
 	Streamer     Streamer
 	BaseURL      string
 	ModelCatalog ModelCatalog
+	UseSearch    bool
 }
 
 type Option func(o *Options)
@@ -46,6 +47,12 @@ func WithBaseURL(baseURL string) Option {
 func WithModelCatalog(catalog ModelCatalog) Option {
 	return func(o *Options) {
 		o.ModelCatalog = catalog
+	}
+}
+
+func WithSearch() Option {
+	return func(o *Options) {
+		o.UseSearch = true
 	}
 }
 

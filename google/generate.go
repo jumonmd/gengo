@@ -33,7 +33,18 @@ func Generate(ctx context.Context, r *chat.Request, opts ...chat.Option) (*chat.
 		return resp, nil
 	}
 
-	resp, err := generateContent(ctx, client, r)
+	req, err := convertChatRequest(r, convertChatConfig(r))
+	if err != nil {
+		return nil, fmt.Errorf("convert chat request: %w", err)
+	}
+
+	if opt.UseSearch {
+		req.Config.Tools = append(req.Config.Tools, &genai.Tool{
+			GoogleSearch: &genai.GoogleSearch{},
+		})
+	}
+
+	resp, err := generateContent(ctx, client, r.Model, req)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
 	}
@@ -41,19 +52,13 @@ func Generate(ctx context.Context, r *chat.Request, opts ...chat.Option) (*chat.
 	return resp, nil
 }
 
-func generateContent(ctx context.Context, client *genai.Client, r *chat.Request) (*chat.Response, error) {
-	config := convertChatConfig(r)
-	req, err := convertChatRequest(r, config)
-	if err != nil {
-		return nil, fmt.Errorf("convert chat request: %w", err)
-	}
-
-	result, err := client.Models.GenerateContent(ctx, r.Model, req.Contents, req.Config)
+func generateContent(ctx context.Context, client *genai.Client, model string, req *generateContentRequest) (*chat.Response, error) {
+	result, err := client.Models.GenerateContent(ctx, model, req.Contents, req.Config)
 	if err != nil {
 		return nil, fmt.Errorf("generate content: %w", err)
 	}
 
-	response := convertGenerateContentResponse(result, r.Model)
+	response := convertGenerateContentResponse(result, model)
 	return response, nil
 }
 
