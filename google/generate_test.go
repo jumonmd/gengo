@@ -26,8 +26,8 @@ func TestConfigFromRequest(t *testing.T) {
 
 	config := convertChatConfig(r)
 
-	if *config.MaxOutputTokens != 100 {
-		t.Errorf("MaxOutputTokens mismatch: expected %d, got %d", 100, *config.MaxOutputTokens)
+	if config.MaxOutputTokens != 100 {
+		t.Errorf("MaxOutputTokens mismatch: expected %d, got %d", 100, config.MaxOutputTokens)
 	}
 	if *config.Temperature != 0.7 {
 		t.Errorf("Temperature mismatch: expected %f, got %f", 0.7, *config.Temperature)

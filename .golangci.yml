@@ -1,22 +1,11 @@
+version: "2"
+
 run:
   build-tags:
     - integration_test
+
 linters:
-  presets:
-    - bugs
-    - comment
-    - complexity
-    - error
-    - format
-    - import
-    - metalinter
-    - module
-    - performance
-    - style
-    - test
-    - unused
   disable:
-    - gci
     - tagliatelle
     - wsl
     - exhaustruct
@@ -41,30 +30,34 @@ linters:
     - dupword
     - gochecknoglobals
     - gosmopolitan
-  exclusions:
-    rules:
-      - path: _test\.go
-        linters:
-          - gocognit
-          - nestif
-          - cyclop
-      - path: examples/
-        linters:
-          - forbidigo
-          - goheader
-linters-settings:
-  cyclop:
-    max-complexity: 12
-  funlen:
-    lines: 90
-  errcheck:
-    # errcheck -verbose .
-    exclude-functions:
-  goheader:
-    values:
-      regexp:
-        fromyear: \d\d\d\d
-    template: |-
-      SPDX-FileCopyrightText: {{ FROMYEAR }} Masa Cento
-      SPDX-License-Identifier: MIT
+  settings:
+    cyclop:
+      max-complexity: 12
+    funlen:
+      lines: 90
+    errcheck:
+      # errcheck -verbose .
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*github.com/anthropics/anthropic-sdk-go/packages/ssestream.Stream[github.com/anthropics/anthropic-sdk-go.MessageStreamEventUnion]).Close
+        - (*github.com/sashabaranov/go-openai.streamReader[github.com/sashabaranov/go-openai.ChatCompletionStreamResponse]).Close
+    goheader:
+      values:
+        regexp:
+          fromyear: \d\d\d\d
+      template: |-
+        SPDX-FileCopyrightText: {{ FROMYEAR }} Masa Cento
+        SPDX-License-Identifier: MIT
 
+exclusions:
+  rules:
+    - path: _test\.go
+      linters:
+        - gocognit
+        - nestif
+        - cyclop
+    - path: examples/
+      linters:
+        - forbidigo
+        - goheader

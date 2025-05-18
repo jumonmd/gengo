@@ -21,13 +21,13 @@ const (
 )
 
 type Request struct {
-	Model          string            `json:"model"`
-	Config         ModelConfig       `json:"config,omitempty"`
-	Metadata       Metadata          `json:"metadata,omitempty"`
-	Messages       []Message         `json:"messages"`
-	Tools          []Tool            `json:"tools,omitempty"`
+	Model    string      `json:"model"`
+	Config   ModelConfig `json:"config,omitempty"`
+	Metadata Metadata    `json:"metadata,omitempty"`
+	Messages []Message   `json:"messages"`
+	Tools    []Tool      `json:"tools,omitempty"`
+	// MustCallTool is true if forced to call tool.
 	MustCallTool   bool              `json:"must_call_tool,omitempty"`
-	ResponseType   string            `json:"response_type,omitempty"`
 	ResponseSchema jsonschema.Schema `json:"response_schema,omitempty"`
 }
 

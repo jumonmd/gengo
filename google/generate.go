@@ -117,7 +117,7 @@ func convertChatConfig(r *chat.Request) *genai.GenerateContentConfig {
 		config.Temperature = genai.Ptr(r.Config.Temperature)
 	}
 	if r.Config.MaxTokens != 0 {
-		config.MaxOutputTokens = genai.Ptr(r.Config.MaxTokens)
+		config.MaxOutputTokens = r.Config.MaxTokens
 	}
 	if r.Config.TopP != 0 {
 		config.TopP = genai.Ptr(r.Config.TopP)
@@ -334,12 +334,8 @@ func convertFinishReason(reason genai.FinishReason) chat.FinishReason {
 
 func updateUsage(usage *chat.Usage, metadata *genai.GenerateContentResponseUsageMetadata) {
 	if metadata != nil {
-		if metadata.PromptTokenCount != nil {
-			usage.InputTokens = int(*metadata.PromptTokenCount)
-		}
-		if metadata.CandidatesTokenCount != nil {
-			usage.OutputTokens = int(*metadata.CandidatesTokenCount)
-		}
+		usage.InputTokens = int(metadata.PromptTokenCount)
+		usage.OutputTokens = int(metadata.CandidatesTokenCount)
 		usage.TotalTokens = int(metadata.TotalTokenCount)
 	}
 }

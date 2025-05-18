@@ -162,9 +162,10 @@ func convertMessage(msg *chat.Message) (anthropic.MessageParam, error) {
 func convertContentPart(msg *chat.Message) ([]anthropic.ContentBlockParamUnion, error) {
 	blocks := []anthropic.ContentBlockParamUnion{}
 	for _, part := range msg.Content {
-		if part.Type == "text" {
+		switch part.Type {
+		case "text":
 			blocks = append(blocks, anthropic.NewTextBlock(part.Text))
-		} else if part.Type == "image" {
+		case "image":
 			if !chat.IsDataURL(part.DataURL) {
 				return nil, fmt.Errorf("invalid image data URL: %s", part.DataURL)
 			}

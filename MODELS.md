@@ -22,6 +22,12 @@
 - `gpt-4-turbo-2024-04-09`
 - `gpt-4-turbo-preview`
 - `gpt-4-vision-preview`
+- `gpt-4.1`
+- `gpt-4.1-2025-04-14`
+- `gpt-4.1-mini`
+- `gpt-4.1-mini-2025-04-14`
+- `gpt-4.1-nano`
+- `gpt-4.1-nano-2025-04-14`
 - `gpt-4.5-preview`
 - `gpt-4.5-preview-2025-02-27`
 - `gpt-4o`
@@ -36,8 +42,12 @@
 - `o1-mini-2024-09-12`
 - `o1-preview`
 - `o1-preview-2024-09-12`
+- `o3`
+- `o3-2025-04-16`
 - `o3-mini`
 - `o3-mini-2025-01-31`
+- `o4-mini`
+- `o4-mini-2025-04-16`
 
 ## anthropic
 
@@ -81,6 +91,10 @@
 - `gemini-2.0-flash-thinking-exp`
 - `gemini-2.0-flash-thinking-exp-01-21`
 - `gemini-2.0-pro-exp-02-05`
+- `gemini-2.5-flash-preview-04-17`
+- `gemini-2.5-pro-exp-03-25`
+- `gemini-2.5-pro-preview-03-25`
+- `gemini-2.5-pro-preview-05-06`
 - `gemini-exp-1114`
 - `gemini-exp-1206`
 - `gemini-gemma-2-27b-it`
